@@ -1,0 +1,37 @@
+name: DataOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Validate docker-compose
+        run: |
+          docker compose config
+
+      - name: Check prometheus config
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml \
+            prom/prometheus:latest \
+            --config.file=/etc/prometheus/prometheus.yml \
+            --check-config
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: validate
+    if: always()
+    steps:
+      - name: Pipeline status
+        run: |
+          echo "✅ DataOps pipeline validation complete"
+          echo "Timestamp: $(date)"
