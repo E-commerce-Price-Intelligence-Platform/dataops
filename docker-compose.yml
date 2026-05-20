@@ -1,32 +1,4 @@
-version: '3.8'
-
 services:
-
-  nifi:
-    image: apache/nifi:1.23.2
-    container_name: nifi
-    ports:
-      - "8443:8443"
-    environment:
-      - SINGLE_USER_CREDENTIALS_USERNAME=admin
-      - SINGLE_USER_CREDENTIALS_PASSWORD=admin123456789
-    volumes:
-      - nifi_data:/opt/nifi/nifi-current/data
-    restart: unless-stopped
-
-  airflow:
-    image: apache/airflow:2.8.1
-    container_name: airflow
-    ports:
-      - "8080:8080"
-    environment:
-      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////opt/airflow/airflow.db
-      - AIRFLOW__CORE__LOAD_EXAMPLES=false
-    volumes:
-      - ../data-engineer/airflow/dags:/opt/airflow/dags
-    command: standalone
-    restart: unless-stopped
 
   prometheus:
     image: prom/prometheus:latest
@@ -49,5 +21,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  nifi_data:
   grafana_data:
