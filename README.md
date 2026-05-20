@@ -1,46 +1,60 @@
-# \# DataOps — E-commerce Price Intelligence Platform
+# DataOps — E-commerce Price Intelligence Platform
 
-# 
+## Role
+Responsable DataOps : infrastructure, automatisation, monitoring et qualite des donnees.
 
-# \## Mon rôle
+## Architecture DataOps
 
-# Je suis responsable DataOps : infrastructure, automatisation, monitoring et qualité des données.
+Web Scraping -> NiFi (Streaming) + Airflow (Batch) -> Bigtable -> dbt -> Statistics
+                          |
+                    DataOps Layer
+                    - Docker + Kubernetes
+                    - CI/CD (GitHub Actions)
+                    - Monitoring (Prometheus + Grafana)
+                    - Data Quality (Great Expectations)
+                    - Infrastructure (Terraform)
 
-# 
+## Structure du repo
 
-# \## Structure du repo
+dataops/
+├── docker-compose.yml
+├── terraform/
+│   └── main.tf
+├── kubernetes/
+│   └── deployment.yml
+├── great_expectations/
+│   └── data_quality_checks.py
+├── monitoring/
+│   └── prometheus.yml
+└── .github/
+    └── workflows/
+        └── ci.yml
 
-# \- `docker-compose.yml` : lance tous les services du projet
+## Lancer le projet localement
 
-# \- `.github/workflows/ci.yml` : pipeline CI/CD automatique
+docker compose up -d
 
-# \- `monitoring/prometheus.yml` : collecte des métriques
+## Services
 
-# \- `monitoring/grafana/` : dashboards de visualisation
+| Service    | Port | Description              |
+|------------|------|--------------------------|
+| Prometheus | 9090 | Collecte des metriques   |
+| Grafana    | 3000 | Dashboard de monitoring  |
 
-# 
+## Data Quality
 
-# \## Lancer le projet
+python great_expectations/data_quality_checks.py
 
-# ```bash
+Verifie : prix positifs, champs non vides, plateformes valides, pas de doublons.
 
-# docker compose up -d
+## CI/CD
 
-# ```
+GitHub Actions lance automatiquement les tests a chaque push sur main.
 
-# 
+## Infrastructure Cloud Terraform
 
-# \## Services
+terraform init
+terraform plan
+terraform apply
 
-# | Service | Port | Description |
-
-# |---|---|---|
-
-# | Apache NiFi | 8443 | Ingestion temps réel |
-
-# | Apache Airflow | 8080 | Orchestration batch |
-
-# | Prometheus | 9090 | Monitoring |
-
-# | Grafana | 3000 | Dashboard |
-
+Deploie : Google Cloud Bigtable + Google Kubernetes Engine GKE.
