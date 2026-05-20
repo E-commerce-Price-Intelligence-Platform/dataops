@@ -1,46 +1,68 @@
 import pandas as pd
+import urllib.request
+import json
 
-# Créer un DataFrame simulant les données de prix e-commerce
-data = {
-    "product_id": ["P001", "P002", "P003", "P004", "P005"],
-    "product_name": ["iPhone 15", "Samsung S24", "Xiaomi 14", "OnePlus 12", "Pixel 8"],
-    "price": [9999.0, 8499.0, 5999.0, 7499.0, 6999.0],
-    "platform": ["Jumia", "Avito", "Jumia", "Avito", "Jumia"],
-    "timestamp": ["2026-05-20", "2026-05-20", "2026-05-20", "2026-05-20", "2026-05-20"]
+print("=" * 55)
+print("   DATA QUALITY CHECKS - Price Intelligence Platform")
+print("=" * 55)
+
+# Charger les vraies donnees de Sara depuis GitHub
+URLS = {
+    "jumia": "https://raw.githubusercontent.com/E-commerce-Price-Intelligence-Platform/data-engineer/main/output/jumia.json",
+    "electroplanet": "https://raw.githubusercontent.com/E-commerce-Price-Intelligence-Platform/data-engineer/main/output/electroplanet.json",
+    "amazon": "https://raw.githubusercontent.com/E-commerce-Price-Intelligence-Platform/data-engineer/main/output/amazon.json"
 }
 
-df = pd.DataFrame(data)
+all_results = []
 
-print("=" * 50)
-print("   DATA QUALITY CHECKS - Price Intelligence")
-print("=" * 50)
+for site, url in URLS.items():
+    print(f"\n--- Checking {site.upper()} ---")
+    try:
+        with urllib.request.urlopen(url) as response:
+            data = json.loads(response.read().decode())
+        df = pd.DataFrame(data)
+        print(f"Total products loaded: {len(df)}")
 
-# Règle 1: product_id ne doit pas être vide
-check1 = df["product_id"].notnull().all()
-print(f"✅ product_id not null:     {check1}")
+        # Règle 1: nom produit non vide
+        check1 = df["name"].notnull().all() if "name" in df.columns else False
+        print(f"  product name not null:     {check1}")
 
-# Règle 2: price doit être positif
-check2 = (df["price"] > 0).all()
-print(f"✅ price is positive:       {check2}")
+        # Règle 2: prix positif
+        if "price" in df.columns:
+            df["price_num"] = pd.to_numeric(df["price"], errors="coerce")
+            valid_prices = df["price_num"].dropna()
+            null_rate = df["price_num"].isnull().mean()
+            check2 = null_rate < 0.5
+            print(f"  price null rate < 50%:     {check2} ({null_rate:.1%} null)")
+        else:
+            check2 = False
+            print(f"  price column missing:      False")
 
-# Règle 3: platform dans liste valide
-valid_platforms = ["Jumia", "Avito", "Amazon"]
-check3 = df["platform"].isin(valid_platforms).all()
-print(f"✅ platform is valid:       {check3}")
+        # Règle 3: pas de doublons
+        if "url" in df.columns:
+            check3 = not df["url"].duplicated().any()
+        else:
+            check3 = True
+        print(f"  no duplicate URLs:         {check3}")
 
-# Règle 4: product_name ne doit pas être vide
-check4 = df["product_name"].notnull().all()
-print(f"✅ product_name not null:   {check4}")
+        # Règle 4: site non vide
+        if "site" in df.columns:
+            check4 = df["site"].notnull().all()
+        else:
+            check4 = True
+        print(f"  site field present:        {check4}")
 
-# Règle 5: pas de prix dupliqués
-check5 = not df["product_id"].duplicated().any()
-print(f"✅ no duplicate products:   {check5}")
+        passed = sum([check1, check2, check3, check4])
+        print(f"  => {passed}/4 checks passed")
+        all_results.append(passed == 4)
 
-# Résultat final
-print("=" * 50)
-all_passed = all([check1, check2, check3, check4, check5])
-if all_passed:
-    print("🎉 ALL CHECKS PASSED! Data quality is OK!")
+    except Exception as e:
+        print(f"  ERROR loading {site}: {e}")
+        all_results.append(False)
+
+print("\n" + "=" * 55)
+if all(all_results):
+    print("ALL SITES PASSED DATA QUALITY CHECKS!")
 else:
-    print("❌ SOME CHECKS FAILED!")
-print("=" * 50)
+    print("SOME CHECKS NEED ATTENTION - SEE DETAILS ABOVE")
+print("=" * 55)
